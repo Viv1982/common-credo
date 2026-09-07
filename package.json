@@ -1,0 +1,15 @@
+{
+  "name": "common-credo-build-tooling",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Repo-root build tooling only: builds the static site (site/) and packages the desktop tools. Not part of the shipped standard or apps.",
+  "scripts": {
+    "build:site": "node build-site.js",
+    "build:wallet": "node holder-pwa/build.js",
+    "build:packages": "node packaging/build-packages.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "@yao-pkg/pkg": "^6.1.1"
+  }
+}

@@ -1,0 +1,33 @@
+.DS_Store
+.claude/
+
+# Private key material — never track
+holder-tool/data/
+issuer-tool/data/
+*.enc.json
+
+# Test/demo data
+toolkit/data/
+
+# Old drafts
+superseded/
+
+# Compiled binaries — use GitHub Releases instead
+packaging/build/
+
+# Internal working docs — not for public repo
+Common_Credo_Session_Notes.md
+Common_Credo_Session_Notes_Addendum_4Jul2026.md
+Common_Credo_Decision_Record_Nostr_and_Scope_28Jul2026.md
+Common_Credo_Decision_Record_White_Label_15Jul2026.md
+Common_Credo_Foundations_and_Lineage.md
+Common_Credo_Running_Sheet.md
+Common_Credo_Holder_PWA_Plan.md
+Common_Credo_What_We_Are_Building_v2.md
+Common_Credo_The_Story.html
+
+# Auto-generated test junk
+verifier-tool/test/.tmp-sync-test/
+
+# Dependencies — anyone can regenerate these with npm install
+node_modules/

@@ -1,0 +1,12 @@
+{
+  "name": "common-credo-toolkit-demo",
+  "version": "0.1.0",
+  "description": "Demo toolkit against the Common Credo Standard Spec v0.2 -- create, seal, cancel, verify, and read a bundle.",
+  "main": "demo.js",
+  "scripts": {
+    "demo": "node demo.js"
+  },
+  "dependencies": {
+    "tweetnacl": "^1.0.3"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "common-credo-core",
+  "version": "0.1.0",
+  "description": "Common Credo reusable core -- record creation/sealing, checks, cancellation lists, holder dispute/withdrawal, bundles -- built on Nostr, against Standard Spec v0.3. Apache-2.0: embeddable in any lending tool, proprietary or not, without a network-copyleft obligation.",
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "nostr-tools": "^2.10.4"
+  }
+}

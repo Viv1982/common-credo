@@ -1,0 +1,17 @@
+{
+  "name": "common-credo-wallet-pwa",
+  "version": "0.1.0",
+  "description": "Common Credo holder wallet as a phone-first PWA (AGPL-3.0). Primary holder path; the desktop holder-tool remains a secondary option with a shared encrypted-key format. Built on the shared common-credo-core engine.",
+  "private": true,
+  "license": "AGPL-3.0",
+  "scripts": {
+    "test": "node --test",
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "common-credo-core": "file:../core"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.0.0"
+  }
+}

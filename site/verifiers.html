@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Common Credo &mdash; For verifiers</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<p><a href="index.html">&larr; Common Credo</a></p>
+
+<h1>For verifiers</h1>
+
+<p>A verifier is anyone deciding whether to trust a record: a lender, a
+supplier, another trader. Someone shows you a bundle of records; you check
+it. There is nothing to install and no account to make. The check runs in
+your browser and talks directly to the public record; no data goes to us,
+because there is no us in the middle.</p>
+
+<h2>Check a record now</h2>
+
+<p><a href="verify/">Open the checker</a>. It runs entirely in your
+browser. You can also
+<a href="downloads/common-credo-verifier-standalone.html">download it as a
+single file</a> to keep and open offline (it still needs an internet
+connection at the moment you check, to reach the public lists).</p>
+
+<h2>Steps</h2>
+
+<ol>
+<li>Ask the holder for their bundle file (a small <code>.json</code> file
+their wallet produced).</li>
+<li>Open the checker and choose that file.</li>
+<li>Read the result. For each record you see one of: <strong>genuine and
+valid</strong>; <strong>cancelled by the issuer</strong> (with the reason,
+and the holder's dispute if they filed one); <strong>withdrawn by the
+holder</strong>; <strong>unverifiable</strong> (the issuer's list could not
+be reached &mdash; neither accept nor reject, weigh it as unconfirmed); or
+<strong>not genuine</strong> (the seal does not match &mdash; the record was
+altered).</li>
+</ol>
+
+<h2>What the check does and does not do</h2>
+
+<p>It confirms two things: that each record is genuine (the seal matches and
+nothing was altered), and whether it is still valid (checked against the
+issuer's own public cancellation list, the holder's dispute address, and
+the holder's withdrawal address).</p>
+
+<p>It does not judge, score, or decide for you. It shows you the facts
+&mdash; who vouched, what they staked, how old the record is, whether it was
+disputed &mdash; and leaves the decision to you. It also does not verify the
+issuer's declared registration number against a government registry; the
+record shows you that number, and checking it against your country's own
+public register, if the decision warrants it, is your own step. Common
+Credo does not verify identity.</p>
+
+<hr>
+<p><a href="index.html">Common Credo</a></p>
+
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC Holder PWA — Phase 1 spike</title>
+<style>
+  body { font-family: monospace; margin: 1em; line-height: 1.4; }
+  h1 { font-size: 1.2em; }
+  .ok { color: #157a3c; }
+  .fail { color: #b3261e; font-weight: bold; }
+  .step { margin: 0.3em 0; }
+  pre { white-space: pre-wrap; word-break: break-all; }
+</style>
+</head>
+<body>
+<h1>Holder wallet PWA — Phase 1 browser spike</h1>
+<p>Proves the full holder WRITE path in this browser, no server, no CDN:
+generate keys → encrypt/decrypt the holder key with the WebCrypto adapter →
+issuer seals a record → holder publishes a withdrawal (kind 30303) to live
+relays → verify reads it back as "withdrawn by holder".</p>
+<p><button id="run">Run the spike</button></p>
+<div id="log"></div>
+
+<script type="module">
+import * as cc from './bundle.js';
+
+const logEl = document.getElementById('log');
+function line(msg, cls) {
+  const d = document.createElement('div');
+  d.className = 'step' + (cls ? ' ' + cls : '');
+  d.textContent = msg;
+  logEl.appendChild(d);
+}
+function pre(obj) {
+  const p = document.createElement('pre');
+  p.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+  logEl.appendChild(p);
+}
+function eqBytes(a, b) { return a.length === b.length && a.every((v, i) => v === b[i]); }
+
+async function run() {
+  logEl.innerHTML = '';
+  try {
+    line('WebCrypto adapter supported: ' + cc.webCryptoSupported(), cc.webCryptoSupported() ? 'ok' : 'fail');
+
+    // 1. Keys, in-browser.
+    const issuerSk = cc.generateSecretKey();
+    const issuerPub = cc.getPublicKey(issuerSk);
+    const holderSk = cc.generateSecretKey();
+    const holderPub = cc.getPublicKey(holderSk);
+    line('1. generated issuer + holder keypairs', 'ok');
+
+    // 2. Encrypt + decrypt the holder secret key with the PWA adapter.
+    const password = 'spike-password-123';
+    const payload = await cc.encryptSecretKey(holderSk, password);
+    const roundTripped = await cc.decryptSecretKey(payload, password);
+    const keyOk = eqBytes(roundTripped, holderSk);
+    line('2. holder key encrypt→decrypt round-trip (AES-256-GCM + scrypt): ' + (keyOk ? 'match' : 'MISMATCH'), keyOk ? 'ok' : 'fail');
+    if (!keyOk) throw new Error('key round-trip failed');
+    let wrongFailed = false;
+    try { await cc.decryptSecretKey(payload, 'wrong'); } catch (e) { wrongFailed = true; }
+    line('   wrong password rejected: ' + wrongFailed, wrongFailed ? 'ok' : 'fail');
+
+    // 3. Issuer seals a record about the holder.
+    const fields = {
+      issuer: { name: 'Spike Co-op', orgType: 'cooperative', location: 'Nairobi, Kenya',
+        anchor: { type: 'cooperative_ngo_registration', country: 'KE', value: 'SPIKE-1' } },
+      subject: { reference: 'Amina Yusuf', identityAnchorType: 'phone_number', identityAnchorValue: '+254-700-000-000' },
+      claim: { claimType: 'trade_credit_honoured', amount: 500, period: '2025', outcome: { polarity: 'positive', detail: 'honoured on time' } },
+      vouchType: 'saw_money_move',
+      stake: { type: 'financial', description: 'bonding deposit' },
+    };
+    const record = cc.createRecord(fields, issuerSk, holderPub);
+    line('3. issuer sealed a record, id ' + record.id.slice(0, 16) + '…', 'ok');
+
+    // 4. Holder publishes an independent withdrawal (kind 30303) to live relays.
+    const pool = cc.createPool();
+    line('4. publishing withdrawal to ' + cc.DEFAULT_RELAYS.join(', ') + ' …');
+    const wres = await cc.publishWithdrawal(pool, holderSk, record.id, 'Phase 1 spike — proving in-browser holder write', cc.DEFAULT_RELAYS);
+    line('   quorum ok: ' + wres.publishResult.ok + ' (succeeded on ' + wres.publishResult.succeeded.length + '/' + cc.DEFAULT_RELAYS.length + ')', wres.publishResult.ok ? 'ok' : 'fail');
+    pre(wres.publishResult);
+
+    // 5. Verify reads the holder's write back from live relays.
+    line('5. verifying the record against live relays …');
+    const v = await cc.verifyRecord(pool, record, cc.DEFAULT_RELAYS, holderPub);
+    const expected = 'withdrawn_by_holder';
+    const pass = v.overall === expected;
+    line('   overall = "' + v.overall + '" (expected "' + expected + '"): ' + (pass ? 'PASS' : 'FAIL'), pass ? 'ok' : 'fail');
+    line('   Check 1 (genuine seal): ' + v.check1.genuine, v.check1.genuine ? 'ok' : 'fail');
+
+    line(pass && keyOk && wres.publishResult.ok ? '✓ SPIKE PASSED — full holder write path works in-browser' : '✗ SPIKE INCOMPLETE — see above', (pass && keyOk && wres.publishResult.ok) ? 'ok' : 'fail');
+  } catch (e) {
+    line('ERROR: ' + (e && e.message ? e.message : String(e)), 'fail');
+    pre(e && e.stack ? e.stack : String(e));
+  }
+}
+
+document.getElementById('run').addEventListener('click', run);
+</script>
+</body>
+</html>

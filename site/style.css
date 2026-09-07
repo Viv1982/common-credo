@@ -1,0 +1,7 @@
+/* Bare and unstyled, on purpose -- the look of the earliest web pages
+   (info.cern.ch). No font, no colours, no width or centring, no design
+   system: the browser's own defaults, left-aligned. The only rules here
+   give the data tables (in the spec and the checker) plain borders, so
+   rows and columns stay readable. */
+table { border-collapse: collapse; }
+td, th { border: 1px solid; padding: 0.3em 0.6em; text-align: left; vertical-align: top; }

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Common Credo &mdash; a longer explanation</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<p><a href="index.html">&larr; Common Credo</a></p>
+
+<h1>A longer explanation</h1>
+
+<p>This page sets out, in plain prose, the problem Common Credo addresses,
+how a record works, what happens when someone behaves badly, and why the
+project is built the way it is. It is longer than the home page and less
+formal than the <a href="spec.html">specification</a>. It argues nothing; it
+describes.</p>
+
+<h2>The problem</h2>
+
+<p>A great deal of creditworthiness is real but cannot travel. Consider a
+textile trader who has taken fabric on credit from her wholesale co-op
+dozens of times over eight years and repaid every time, usually early. The
+people around her know she is reliable: her co-op, her suppliers, her
+customers. When she applies to a microfinance lender two districts away for
+working capital, she is asked to prove it. She has no formal credit history,
+no registered collateral, and no audited accounts. The loan officer has
+never heard of her co-op and has no way to check what she says. The answer
+is no &mdash; not because she is a bad risk, but because she is an
+unverifiable one.</p>
+
+<p>Hundreds of millions of small businesses are in this position. The
+knowledge that would let them borrow already exists; it is held locally, in
+a form that cannot move. Most attempts to solve this have built an
+institution &mdash; a bureau that centralises the data, or a platform that
+owns the users &mdash; and each one recreates the dependency it set out to
+remove, placing people's reputations inside someone's business model.
+Common Credo takes the opposite approach: no institution. A small, free,
+open standard for one portable document, with everything else built by
+others on top.</p>
+
+<h2>What a record is, and how it is checked</h2>
+
+<p>The organisation that has actually watched the trader's money move &mdash;
+her co-op &mdash; issues her a record: a single digital document, signed
+with the co-op's digital seal, that lives on her own device rather than on
+the co-op's server or in any database. The record states who issued it, who
+it is about, what is being claimed (trade credit honoured, an amount, a
+period), what kind of vouch it is, and what the issuer is staking on it.</p>
+
+<p>When she later shows it to the distant lender, the lender's software runs
+two checks in about a second, without contacting any central service:</p>
+
+<ul>
+<li><strong>Is it genuine?</strong> The seal matches the co-op's public key,
+and the contents match the record's own fingerprint. Nothing has been
+altered.</li>
+<li><strong>Is it still valid?</strong> The record carries the address of the
+co-op's own cancellation list. The software checks that list: the record is
+not on it, and the list has been signed recently.</li>
+</ul>
+
+<p>The lender has still never heard of the co-op, so the record also carries
+the co-op's registration number, which the lender can check against the
+national registry that already exists. There is no Common Credo directory to
+consult; the standard points at registries the country already maintains.</p>
+
+<p>Three parties, one document. The <strong>issuer</strong> (the co-op)
+vouches because it has seen the money move, and every record carries its
+name, its registration and its stake, so its own track record rides on its
+accuracy. The <strong>holder</strong> (the trader) carries the proof on her
+own device, shows it to whom she chooses, and can withdraw it. The
+<strong>verifier</strong> (the lender) relies on it because the mathematics
+cannot be faked, the issuer is publicly anchored, and every signal is
+visible and priced by the verifier, not by Common Credo. One record is a
+single data point; in practice a holder carries a bundle of records from
+several organisations, and no single vouch is meant to be sufficient.</p>
+
+<h2>What happens when someone behaves badly</h2>
+
+<p>Common Credo enforces nothing. Its defences are structural: they make bad
+behaviour visible and permanent, and they make it cost the person who
+attempts it. Only the issuer or the holder can cancel a record, and every
+cancellation states a public reason. A holder who is cancelled against is
+notified at once and can publish a dispute &mdash; at an address only the
+holder controls &mdash; before any verifier sees the cancellation, and
+neither party can suppress the other's side. A false dispute, or a spiteful
+cancellation, becomes a permanent part of the record of whoever made it.
+Because a standing rests on many records, one malicious act can dent it but
+not erase it. The standard states plainly that this prices malice rather
+than preventing it, and that the newest participants are the most
+exposed.</p>
+
+<h2>Why it is built this way</h2>
+
+<p>Common Credo is intended to be free and owned by no one, and to stay that
+way. It defines a format and provides tools; it runs no service that anyone
+must depend on. The expensive, hard parts it needs already exist and are
+reused rather than rebuilt: the signing keys, the tamper-evident records and
+the relays that carry them come from Nostr, an open protocol; the checks on
+whether an organisation is real point at government registries that are
+already maintained. What is left for Common Credo to define is small &mdash;
+the shape of one checkable record &mdash; which is the point. A standard's
+value is in being adopted, and the less it demands, the further it can
+travel.</p>
+
+<p>The <a href="foundations.html">foundations and lineage</a> page sets out
+the older systems this approach learns from, and the
+<a href="spec.html">specification</a> gives the exact, formal definition.</p>
+
+<hr>
+<p><a href="index.html">Common Credo</a></p>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Common Credo — Toolkit Walkthrough</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <p class="eyebrow">Common Credo — demo toolkit, walked through</p>
+    <h1>Create. Seal. Cancel. Verify. Read a bundle.</h1>
+    <p class="subtitle">A working run of the toolkit against Standard Spec v0.2 — real cryptographic seals,
+      not a mockup. Three spec gaps are flagged along the way, not worked around silently.</p>
+  </div>
+</header>
+
+<section class="roles">
+  <div class="role-card">
+    <div class="role-icon">🖋️</div>
+    <div class="role-label">ISSUER</div>
+    <div class="role-desc">Riverside Traders Co-operative<br>vouches, and signs</div>
+  </div>
+  <div class="role-arrow">→</div>
+  <div class="role-card">
+    <div class="role-icon">📱</div>
+    <div class="role-label">HOLDER</div>
+    <div class="role-desc">Amina Yusuf<br>carries her own record</div>
+  </div>
+  <div class="role-arrow">→</div>
+  <div class="role-card">
+    <div class="role-icon">🔍</div>
+    <div class="role-label">VERIFIER</div>
+    <div class="role-desc">The next lender<br>checks it, trusts it</div>
+  </div>
+</section>
+
+<main id="story"></main>
+
+<footer>
+  <p>Generated from a live run of the toolkit (<code>visual/build-story.js</code>) — every seal, every hash, every
+    cancellation on this page was computed for real, not written by hand.</p>
+</footer>
+
+<script src="story-data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

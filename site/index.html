@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Common Credo</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>Common Credo</h1>
+
+<p>Common Credo is a free, open standard that specifies the format of a
+portable record of creditworthiness. A record is a statement, signed by the
+organisation that makes it, that a person or business met an obligation:
+repaid a loan, honoured trade credit, remained a member in good standing.
+Common Credo is a specification and a set of tools. It is not a company, a
+lender, or a database; it runs no server and holds no records.</p>
+
+<p>It exists because creditworthiness that is visible to a local
+organisation is hard to carry anywhere else. A co-op, supplier or
+microfinance group often knows that a person has been reliable, but that
+knowledge stays local: a lender or trader who does not already know them has
+no way to check it. Common Credo defines a record that the person keeps and
+can show to anyone, and that anyone shown it can check without contacting a
+central service.</p>
+
+<p>A trusted local organisation (a supplier, a trade counterparty, a co-op,
+a chamber, a microfinance group) signs a record about a person or business:
+"repaid this loan", "honoured this trade credit", "member in good standing".
+The person keeps that record themselves, on their own device, and can show
+it to anyone. Anyone shown it can check two things in about a second,
+without contacting any central service: that the record is genuine, and
+that it has not been cancelled.</p>
+
+<p>There is no Common Credo server in that check, no central register, and
+no account with Common Credo. Each organisation publishes its own list of
+what it has cancelled, at its own address. Each person controls their own
+record and their own right to dispute or withdraw it. There is nothing in
+the middle to own, charge for, capture, or switch off.</p>
+
+<p>Common Credo is built on Nostr, an open protocol for signed messages
+carried by independent relays. Building on it means the signing keys, the
+tamper-evident records and the public relays are existing, proven
+infrastructure that no one owns &mdash; Common Credo did not have to build
+or run any of that itself, and there is no new central system to trust.</p>
+
+<h2>How it resists cheating</h2>
+
+<p>Common Credo enforces nothing itself. It has no server that can police
+behaviour and no authority that decides who is right. Instead the design
+tries to make dishonesty visible, permanent, and costly to whoever attempts
+it, so that being honest is the cheaper course. The main mechanisms:</p>
+
+<ul>
+<li><strong>Every vouch carries a stake.</strong> The organisation that
+signs a record also records what it stands to lose if the vouch proves
+false: money, or its own public track record of accurate vouching. A record
+with nothing behind it is allowed, but it is marked as such, so a verifier
+can see that no one backed it and weigh it accordingly. (Decision D3.)</li>
+
+<li><strong>Only two parties can cancel a record: the organisation that
+signed it, or the person it is about. No one else.</strong> Every
+cancellation states a reason, and both the cancellation and the reason are
+public. An organisation that cancels truthful records out of spite damages
+its own visible track record, which every future verifier can see.
+(Decision D5.)</li>
+
+<li><strong>The person can always answer a cancellation, and the answer
+cannot be suppressed.</strong> When an organisation cancels a record, the
+person is notified at once, but the cancellation does not become visible to
+verifiers for a fixed window (72 hours by default) &mdash; long enough for
+the person to publish their side first. The person's dispute is published at
+an address only they control, exactly as the organisation's cancellation
+list sits at an address only it controls. Neither side can hide or delete
+the other's. Disputes must use one of a short list of fixed categories, so a
+coordinated false story is harder to sustain than a coordinated number.
+(Decision D8.)</li>
+
+<li><strong>Abuse marks the abuser.</strong> A false dispute becomes a
+permanent part of the record of the person who filed it; a pattern of
+malicious cancellations becomes a permanent part of the organisation's.
+Filing a false dispute, or cancelling a true record out of spite, is most
+damaging to the party who does it. And because a standing is built from many
+records from many organisations, no single spiteful act can erase it &mdash;
+it can only dent it.</li>
+</ul>
+
+<p>None of this prevents malice outright, and the standard says so plainly: a
+spiteful organisation can still cancel a truthful record, and a coordinated
+group can still attempt an attack. What the design does is make both visible
+in public data, permanent on the record of whoever attempts them, and
+diluted by the many records around them. The newest participants, with the
+fewest records, are the most exposed. That is named, not hidden.</p>
+
+<h2>What is here</h2>
+
+<ul>
+<li><a href="spec.html">The standard (Specification v0.3)</a> &mdash; the
+reference document that says exactly what a record contains and how it is
+checked. Anyone can read it.</li>
+<li><a href="verify/">Check a record</a> &mdash; a verifier's tool that
+runs in your browser, right now, with nothing to install.</li>
+<li><a href="foundations.html">Foundations and lineage</a> &mdash; the
+history and design logic behind Common Credo, including the older systems it
+learns from: the medieval English tally sticks, the Maghribi traders of
+11th-century Cairo, and the 1970 Irish bank closure.</li>
+</ul>
+
+<h2>The three roles</h2>
+
+<ul>
+<li><a href="issuers.html">Issuers</a> &mdash; organisations that vouch.
+They run a tool that creates and seals records and publishes their
+cancellation list.</li>
+<li><a href="holders.html">Holders</a> &mdash; the people and businesses
+records are about. They run a tool that holds their records, shows a
+selection to whoever they choose, and lets them dispute or withdraw.</li>
+<li><a href="verifiers.html">Verifiers</a> &mdash; anyone deciding whether
+to trust a record: a lender, a supplier, another trader. They check what
+they are shown.</li>
+</ul>
+
+<p>The tools are free and open-source. Issuers and holders download and run
+a small program on their own computer, because it holds a signing key that
+must stay with them. Verifiers can use the tool on this site directly.</p>
+
+<h2>Status, plainly</h2>
+
+<p>As of 9 August 2026: the standard is complete through its eight
+foundation decisions (v0.3), and the tools work and have been tested
+against live infrastructure. Common Credo is an early-stage experiment. It
+is expected to change as people use it and give feedback; it is not a
+finished product. Some things are deliberately not done yet:</p>
+
+<ul>
+<li>It has not been tested with real strangers yet. The open question is
+whether someone who does not already know the people involved &mdash; a
+distant lender or supplier &mdash; will actually treat a community-issued
+record as worth acting on. The standard and the tools make that test
+possible; they cannot answer it. That needs a first real community using it
+in the world.</li>
+<li>The holder's wallet now runs on a phone &mdash; installed from the
+browser to the home screen, with no app store &mdash; as well as on a
+computer. It works in the browser, but has not yet been tested across the
+full range of real phones, so treat it as early.</li>
+<li>The downloadable programs are not yet signed, so your operating system
+will show a one-time "unidentified developer" warning the first time you
+run one. The instructions explain it.</li>
+</ul>
+
+<hr>
+
+<p>Common Credo &middot; Standard Specification v0.3. The standard is free
+and will remain so, owned by no one. The specification is an open document;
+the shared building-block code is Apache-2.0; the tools are AGPL-3.0. There
+is <a href="story.html">a longer explanation</a> for anyone who wants it.</p>
+
+<h2>Contact</h2>
+
+<ul>
+<li>Email: <a href="mailto:commoncredo@tuta.com">commoncredo@tuta.com</a></li>
+<li>Nostr: npub1et9rvp27v4ggak3ptdy7a3zzh35xfuctrz72d2yfgjtjc7d3adzq95qjts</li>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Common Credo -- Check a Bundle</title>
+<style>
+  /* Bare and unstyled, matching the rest of the Common Credo site: the
+     browser's own defaults, left-aligned, no colours, no layout system.
+     The only rules give the result tables plain borders and set record
+     IDs in a monospace font, so the output stays readable. */
+  table { border-collapse: collapse; margin: 0.5em 0; }
+  td, th { border: 1px solid; padding: 0.3em 0.6em; text-align: left; vertical-align: top; }
+  .mono { font-family: monospace; word-break: break-all; }
+</style>
+</head>
+<body>
+<h1>Common Credo -- check a bundle</h1>
+<p>Choose the bundle file the person gave you (a small .json file exported
+from their Common Credo wallet). This runs entirely in your browser and
+talks directly to the public relays -- no server of ours is involved. It
+needs an internet connection.</p>
+<p><input type="file" id="file-input" accept=".json,application/json"></p>
+<p id="status"></p>
+<div id="results"></div>
+
+<script type="module">
+// esm.sh serves nostr-tools' real published ESM build (confirmed via its
+// package.json "exports" map -- no bundler needed). This is the SAME
+// library core/lib/ uses in Node, just loaded over the network instead of
+// via node_modules. Requires internet access, same as checking relays
+// already does -- not a new dependency this adds.
+import { verifyEvent } from 'https://esm.sh/nostr-tools@2.10.4/pure';
+import { SimplePool } from 'https://esm.sh/nostr-tools@2.10.4/pool';
+
+// =====================================================================
+// VERIFY-ENGINE START -- kept in sync with core/lib/verify.js (and the
+// cancellationList.js / holderActions.js read-side functions it calls)
+// by test/sync.test.js. See standalone/README.md before editing this
+// region. Framework-free on purpose: no `document`, no `window`, no
+// browser-only API -- only `verifyEvent` (imported above) and a `pool`
+// argument shaped like nostr-tools' SimplePool (real SimplePool here in
+// the browser; the same FakePool the other tools' tests already use, in
+// test/sync.test.js). This lets the test extract everything between
+// these two markers, verbatim, and run it directly in Node.
+// =====================================================================
+// @sync-test:engine-start
+
+const CANCELLATION_LIST_KIND = 30300;
+const CANCELLATION_LIST_DTAG = 'cc-cancellation-list';
+const DISPUTE_KIND = 30301;
+const WITHDRAWAL_KIND = 30303;
+const QUERY_TIMEOUT_MS = 8000;
+
+function disputeDTag(recordId) { return 'cc-dispute-' + recordId; }
+function withdrawalDTag(recordId) { return 'cc-withdrawal-' + recordId; }
+
+// Mirrors core/lib/relay.js's fetchLatestAddressable exactly: query all
+// given relays for an addressable event (kind 30000-39999) and return the
+// one with the highest created_at, since not every relay is guaranteed to
+// have caught up to the latest publish.
+async function fetchLatestAddressable(pool, relayUrls, { pubkey, kind, dTag }) {
+  const filter = { kinds: [kind], authors: [pubkey] };
+  if (dTag) filter['#d'] = [dTag];
+  const events = await pool.querySync(relayUrls, filter, { maxWait: QUERY_TIMEOUT_MS });
+  if (!events.length) return null;
+  return events.reduce((latest, e) => (e.created_at > latest.created_at ? e : latest));
+}
+
+// Mirrors core/lib/cancellationList.js's fetchList.
+async function fetchList(pool, issuerPubkey, relayUrls) {
+  const event = await fetchLatestAddressable(pool, relayUrls, { pubkey: issuerPubkey, kind: CANCELLATION_LIST_KIND, dTag: CANCELLATION_LIST_DTAG });
+  if (!event) return { event: null, entries: [] };
+  return { event, entries: JSON.parse(event.content).entries };
+}
+
+// Mirrors core/lib/holderActions.js's fetchDispute / fetchWithdrawal.
+async function fetchDispute(pool, holderPubkeyHex, recordId, relayUrls) {
+  const event = await fetchLatestAddressable(pool, relayUrls, { pubkey: holderPubkeyHex, kind: DISPUTE_KIND, dTag: disputeDTag(recordId) });
+  return event ? JSON.parse(event.content) : null;
+}
+async function fetchWithdrawal(pool, holderPubkeyHex, recordId, relayUrls) {
+  const event = await fetchLatestAddressable(pool, relayUrls, { pubkey: holderPubkeyHex, kind: WITHDRAWAL_KIND, dTag: withdrawalDTag(recordId) });
+  return event ? JSON.parse(event.content) : null;
+}
+
+// Mirrors core/lib/verify.js's checkGenuine exactly.
+function checkGenuine(record) {
+  const structurallySealed = verifyEvent(record);
+  return { structurallySealed, genuine: structurallySealed };
+}
+
+// Mirrors core/lib/verify.js's checkStillValid exactly, including the
+// withdrawal-always-wins precedence and the holderChecksCompleted flag.
+async function checkStillValid(pool, record, relayUrls, holderPubkeyHex) {
+  // A record whose content is corrupted has already failed -- or will
+  // fail -- Check 1. Degrade gracefully rather than throw, so
+  // verifyRecord() below always resolves and check1's `not_genuine` can
+  // speak for itself. (See core/lib/verify.js for the same fix, kept in
+  // sync by test/sync.test.js.)
+  let content, issuerPubkey;
+  try {
+    content = JSON.parse(record.content);
+    issuerPubkey = content.revocationPointer.issuerPubkey;
+    if (!issuerPubkey) throw new Error('missing revocationPointer.issuerPubkey');
+  } catch (e) {
+    return { checked: false, status: 'unverifiable', reason: 'record content is unreadable -- cannot determine which issuer to check', cancellation: null, dispute: null, withdrawal: null, holderChecksCompleted: false };
+  }
+  const recordId = record.id;
+
+  const [{ event: listEvent, entries }, disputeContent, withdrawalContent] = await Promise.all([
+    fetchList(pool, issuerPubkey, relayUrls),
+    holderPubkeyHex ? fetchDispute(pool, holderPubkeyHex, recordId, relayUrls) : Promise.resolve(null),
+    holderPubkeyHex ? fetchWithdrawal(pool, holderPubkeyHex, recordId, relayUrls) : Promise.resolve(null),
+  ]);
+
+  const holderChecksCompleted = !!holderPubkeyHex;
+  const withdrawal = withdrawalContent ? { reason: withdrawalContent.reason, withdrawnAt: withdrawalContent.withdrawnAt } : null;
+  const dispute = disputeContent ? { category: disputeContent.category, detail: disputeContent.detail, disputedAt: disputeContent.disputedAt } : null;
+
+  if (withdrawal) {
+    return { checked: true, status: 'withdrawn_by_holder', cancellation: null, dispute, withdrawal, holderChecksCompleted };
+  }
+  if (!listEvent) {
+    return { checked: false, status: 'unverifiable', reason: 'dead issuer: no cancellation list found at all', cancellation: null, dispute, withdrawal: null, holderChecksCompleted };
+  }
+  const entry = entries.find((e) => e.recordId === recordId);
+  if (!entry) {
+    return { checked: true, status: 'valid', cancellation: null, dispute, withdrawal: null, holderChecksCompleted };
+  }
+  return {
+    checked: true, status: 'cancelled',
+    cancellation: { reason: entry.reason, cancelledBy: entry.cancelledBy, cancelledAt: entry.cancelledAt },
+    dispute, withdrawal: null, holderChecksCompleted,
+  };
+}
+
+async function verifyRecord(pool, record, relayUrls, holderPubkeyHex) {
+  const check1 = checkGenuine(record);
+  const check2 = await checkStillValid(pool, record, relayUrls, holderPubkeyHex);
+  return { recordId: record.id, check1, check2, overall: !check1.genuine ? 'not_genuine' : check2.status };
+}
+
+export { checkGenuine, checkStillValid, verifyRecord };
+// @sync-test:engine-end
+// =====================================================================
+// VERIFY-ENGINE END
+// =====================================================================
+
+// ---------------------------------------------------------------------
+// UI glue -- NOT covered by test/sync.test.js. File loading and
+// rendering only; no checking logic lives below this line.
+// ---------------------------------------------------------------------
+
+const DEFAULT_RELAYS = ['wss://nos.lol', 'wss://relay.primal.net'];
+const pool = new SimplePool(); // plain, no options -- keeps nostr-tools' own default signature verification (see CONTRIBUTING.md note)
+
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function formatAge(record) {
+  const days = Math.round((Date.now() - record.created_at * 1000) / (1000 * 60 * 60 * 24));
+  if (days < 1) return 'issued today';
+  if (days < 60) return `issued ${days} day${days === 1 ? '' : 's'} ago`;
+  const months = Math.round(days / 30.44);
+  if (months < 24) return `issued ${months} month${months === 1 ? '' : 's'} ago`;
+  return `issued ${Math.round(days / 365.25 * 10) / 10} years ago`;
+}
+
+function statusBadge(overall) {
+  const map = {
+    valid: 'Genuine & valid', cancelled: 'Cancelled by issuer',
+    withdrawn_by_holder: 'Withdrawn by holder', unverifiable: 'Unverifiable',
+    not_genuine: 'NOT GENUINE -- seal broken',
+  };
+  const label = map[overall] || overall;
+  return `<strong>${escapeHtml(label)}</strong>`;
+}
+
+function parseContentSafe(record) {
+  try { return JSON.parse(record.content); }
+  catch (e) {
+    return { issuer: { name: '(unreadable)', orgType: '', location: '', anchor: null },
+      subject: { reference: '(unreadable)', identityAnchorType: 'unknown' },
+      claim: { claimType: 'unknown', period: '', outcome: { polarity: 'neutral', detail: '' } },
+      vouchType: 'unknown', stake: { type: 'unknown' }, flags: [] };
+  }
+}
+
+function renderRecordCard(record, content, verification) {
+  const overall = verification.overall, check1 = verification.check1, check2 = verification.check2;
+  const anchorLine = content.issuer.anchor
+    ? `${escapeHtml(content.issuer.anchor.type.replace(/_/g, ' '))} -- ${escapeHtml(content.issuer.anchor.country)} -- <span class="mono">${escapeHtml(content.issuer.anchor.value)}</span>`
+    : 'not declared';
+
+  let statusDetail = '';
+  if (overall === 'cancelled' && check2.cancellation) {
+    statusDetail = `<p>Cancelled by the issuer. Reason given: "${escapeHtml(check2.cancellation.reason)}"` +
+      (check2.dispute ? `<br><br><strong>The holder disputes this cancellation.</strong> Category: ${escapeHtml(check2.dispute.category.replace(/_/g, ' '))}. Their side: "${escapeHtml(check2.dispute.detail || '')}"` : '') +
+      `</p>`;
+  } else if (overall === 'withdrawn_by_holder' && check2.withdrawal) {
+    statusDetail = `<p>The holder withdrew this record herself, independent of the issuer. Her reason: "${escapeHtml(check2.withdrawal.reason)}"</p>`;
+  } else if (overall === 'unverifiable') {
+    statusDetail = `<p>Could not reach the issuer's noticeboard to confirm this is still valid (${escapeHtml(check2.reason || 'unreachable')}). Not rejected, not accepted -- price it as unconfirmed.</p>`;
+  } else if (overall === 'not_genuine') {
+    statusDetail = `<p>This record's seal does not match its own contents. It has been altered since it was signed, or was never genuinely signed. Do not rely on anything else shown below.</p>`;
+  }
+  if (check2.holderChecksCompleted === false && overall !== 'not_genuine') {
+    statusDetail += `<p>No holder identity was available to check for a dispute or an independent withdrawal on this record -- that half of Check 2 was not attempted. This shouldn't happen with a normal bundle export; treat this record cautiously.</p>`;
+  }
+
+  return `<hr>
+    <p>Result: ${statusBadge(overall)}</p>
+    <table>
+      <tr><td>Claim</td><td><strong>${escapeHtml(content.claim.claimType.replace(/_/g, ' '))}</strong>${content.claim.isRegionalExtension ? ' (regional extension)' : ''}</td></tr>
+      <tr><td>Period / amount</td><td>${escapeHtml(content.claim.period)}${content.claim.amount != null ? ' -- ' + escapeHtml(String(content.claim.amount)) : ''}</td></tr>
+      <tr><td>Outcome</td><td>${escapeHtml(content.claim.outcome.polarity)} -- ${escapeHtml(content.claim.outcome.detail || '')}</td></tr>
+      <tr><td>Vouch type</td><td>${escapeHtml(content.vouchType.replace(/_/g, ' '))}</td></tr>
+      <tr><td>Stake</td><td>${escapeHtml(content.stake.type)}${content.stake.description ? ' -- ' + escapeHtml(content.stake.description) : ''}${content.stake.declaredProfile ? ' (' + escapeHtml(content.stake.declaredProfile) + ')' : ''}</td></tr>
+      <tr><td>Issuer</td><td>${escapeHtml(content.issuer.name)} -- ${escapeHtml(content.issuer.orgType)}, ${escapeHtml(content.issuer.location)}</td></tr>
+      <tr><td>Issuer's declared anchor (D7)</td><td>${anchorLine}</td></tr>
+      <tr><td>Subject</td><td>${escapeHtml(content.subject.reference)} (${escapeHtml(content.subject.identityAnchorType.replace(/_/g, ' '))})</td></tr>
+      <tr><td>Dates</td><td>${escapeHtml(formatAge(record))}</td></tr>
+      <tr><td>Check 1 -- genuine?</td><td>${check1.genuine ? 'yes, seal matches' : 'NO -- seal broken'}</td></tr>
+      <tr><td>Record ID</td><td class="mono">${escapeHtml(record.id)}</td></tr>
+    </table>
+    ${content.flags && content.flags.length ? `<p>${content.flags.map(escapeHtml).join('<br>')}</p>` : ''}
+    ${statusDetail}`;
+}
+
+function validateEnvelope(envelope) {
+  if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)) {
+    throw new Error('That file is not a Common Credo bundle -- expected a JSON object.');
+  }
+  if (!Array.isArray(envelope.records) || envelope.records.length === 0) {
+    throw new Error('That bundle has no records in it.');
+  }
+  for (const r of envelope.records) {
+    if (!r || typeof r !== 'object' || !r.id || !r.sig || !r.pubkey || typeof r.content !== 'string') {
+      throw new Error('One of the records in this bundle is not shaped like a Common Credo record -- the file may be corrupted or was not really exported by a Common Credo wallet.');
+    }
+  }
+}
+
+const fileInput = document.getElementById('file-input');
+const statusEl = document.getElementById('status');
+const resultsEl = document.getElementById('results');
+
+fileInput.addEventListener('change', async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  resultsEl.innerHTML = '';
+  statusEl.textContent = 'Reading file...';
+
+  let envelope;
+  try {
+    const text = await file.text();
+    envelope = JSON.parse(text);
+    validateEnvelope(envelope);
+  } catch (e) {
+    statusEl.textContent = '';
+    resultsEl.innerHTML = `<hr><p>${escapeHtml(e.message)}</p>`;
+    return;
+  }
+
+  statusEl.textContent = `Checking ${envelope.records.length} record(s) against live relays...`;
+
+  const results = [];
+  for (const record of envelope.records) {
+    const verification = await verifyRecord(pool, record, DEFAULT_RELAYS, envelope.holderPubkey || undefined);
+    results.push({ record, content: parseContentSafe(record), verification });
+  }
+
+  statusEl.textContent = '';
+  const counts = { valid: 0, cancelled: 0, withdrawn_by_holder: 0, unverifiable: 0, not_genuine: 0 };
+  results.forEach((r) => { counts[r.verification.overall] = (counts[r.verification.overall] || 0) + 1; });
+  const statLabels = [['valid', 'Genuine & valid'], ['cancelled', 'Cancelled'], ['withdrawn_by_holder', 'Withdrawn'], ['unverifiable', 'Unverifiable'], ['not_genuine', 'Not genuine']];
+
+  resultsEl.innerHTML = `
+    <hr>
+    <h2>Standing for ${escapeHtml(envelope.holderNpub ? envelope.holderNpub.slice(0, 20) + '...' : 'this bundle')}</h2>
+    <p>Facts only -- no score. ${results.length} record(s) checked, generated by the holder at ${escapeHtml(envelope.generatedAt || 'an unknown time')}.</p>
+    <table>
+      <tr><th>Result</th><th>Records</th></tr>
+      ${statLabels.map(([k, label]) => `<tr><td>${escapeHtml(label)}</td><td>${counts[k]}</td></tr>`).join('')}
+    </table>
+    <p>This tool does not check any issuer's declared anchor (D7) against a government registry -- that's your own job if it matters for this decision. Common Credo does not verify identity; it only makes the claim, the seal, and the cancellation/dispute/withdrawal status checkable.</p>
+    ${results.map((r) => renderRecordCard(r.record, r.content, r.verification)).join('')}
+    <hr>
+    <p><button onclick="location.reload()">Check another bundle</button></p>
+  `;
+});
+</script>
+</body>
+</html>

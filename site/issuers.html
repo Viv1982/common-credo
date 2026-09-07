@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Common Credo &mdash; For issuers</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<p><a href="index.html">&larr; Common Credo</a></p>
+
+<h1>For issuers</h1>
+
+<p>An issuer is an organisation that vouches for someone: a supplier or
+trade counterparty that has watched the money move, a co-op, a chamber, a
+microfinance group. As an issuer you create records, sign them with your
+own key, and hand them to the person the record is about. You also keep a
+public list of any records you have cancelled, so that anyone can check a
+record is still valid. The tool does all of this.</p>
+
+<p>You run the tool on your own computer. It holds your signing key, which
+must stay with you and never goes to us or to anyone else.</p>
+
+<h2>Get the tool</h2>
+
+<ul>
+<li><a href="downloads/common-credo-issuer-tool-windows.zip">Windows</a></li>
+<li><a href="downloads/common-credo-issuer-tool-mac.zip">macOS</a></li>
+<li><a href="downloads/common-credo-issuer-tool-linux.zip">Linux</a></li>
+</ul>
+
+<p>Each download is about 22&ndash;28 MB, because the program it needs to run
+is bundled inside so there is nothing else to install. On a slow connection
+it may take a little while.</p>
+
+<h2>Steps</h2>
+
+<ol>
+<li>Download the file for your system and unzip it.</li>
+<li>Double-click the program inside. The first time, your operating system
+will warn you that it is from an "unidentified developer". This is because
+the program is not yet signed, not because anything is wrong. On Windows,
+click "More info" then "Run anyway"; on macOS, right-click the program,
+choose "Open", then "Open" again.</li>
+<li>A small window opens, and your web browser opens the tool. If the
+browser does not open on its own, go to the address the window shows you
+(<code>http://localhost:4173</code>).</li>
+<li>Set up your organisation once: the tool generates your signing key,
+shows you a backup of it, and asks you to confirm you have saved that
+backup. <strong>Save it somewhere safe. There is no password reset and no
+way to recover a lost key</strong> &mdash; if you lose it, you lose the
+ability to sign and to cancel, permanently. Then you declare who you are
+(your name and an official registration number that a verifier can check
+against your country's own public register) and set a password that
+protects the key on this computer.</li>
+<li>Create records. For each one you enter who it is about, what you are
+vouching (repaid a loan, honoured trade credit, member in good standing,
+and so on), and what you stand to lose if the vouch is false. The tool
+seals the record and gives you a file to hand to that person.</li>
+<li>Cancel a record if you must (fraud found, a genuine error). State a
+reason; it becomes public and permanent, and it counts against your own
+record. The tool updates and republishes your cancellation list on its
+own.</li>
+</ol>
+
+<p>Keep the program running while you are using it. To stop it, close its
+window.</p>
+
+<hr>
+<p><a href="index.html">Common Credo</a> &middot; the issuer tool is
+AGPL-3.0.</p>
+
+</body>
+</html>
